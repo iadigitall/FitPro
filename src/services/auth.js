@@ -12,11 +12,19 @@ import {
 } from 'firebase/auth'
 import { auth } from './firebase'
 
+const ACTION_CODE_SETTINGS = {
+  url: 'https://iadigitall.github.io/FitPro/',
+  handleCodeInApp: false,
+}
+
 export const signUp = async (email, password, name) => {
   const credential = await createUserWithEmailAndPassword(auth, email, password)
   await updateProfile(credential.user, { displayName: name })
-  await sendEmailVerification(credential.user)
   return credential.user
+}
+
+export const sendVerificationEmail = async (user) => {
+  await sendEmailVerification(user, ACTION_CODE_SETTINGS)
 }
 
 export const signIn = (email, password) =>
@@ -28,7 +36,8 @@ export const resetPassword = (email) => sendPasswordResetEmail(auth, email)
 
 export const onAuthChange = (callback) => onAuthStateChanged(auth, callback)
 
-export const resendVerificationEmail = (user) => sendEmailVerification(user)
+export const resendVerificationEmail = (user) =>
+  sendEmailVerification(user, ACTION_CODE_SETTINGS)
 
 export const deleteAccount = async (user, password) => {
   const credential = EmailAuthProvider.credential(user.email, password)

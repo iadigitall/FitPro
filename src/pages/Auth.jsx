@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react'
 import { useRef, useCallback } from 'react'
-import { signIn, signUp, resetPassword } from '../services/auth'
+import { signIn, signUp, resetPassword, sendVerificationEmail, resendVerificationEmail } from '../services/auth'
 import { saveProfile, searchGyms } from '../services/firestore'
 import { Building2, Check } from 'lucide-react'
 import { FitProLogo } from '../components/Splash'
@@ -334,6 +334,9 @@ function SignupForm() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [verifyPending, setVerifyPending] = useState(false)
+  const [verifyUser, setVerifyUser] = useState(null)
+  const [resending, setResending] = useState(false)
+  const [resendDone, setResendDone] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -345,6 +348,8 @@ function SignupForm() {
     try {
       const user = await signUp(email, password, name)
       await saveProfile(user.uid, { gymName: gymName.trim() })
+      try { await sendVerificationEmail(user) } catch {}
+      setVerifyUser(user)
       setVerifyPending(true)
     } catch (err) {
       const msgs = {
@@ -358,31 +363,77 @@ function SignupForm() {
     }
   }
 
+  const handleResend = async () => {
+    if (!verifyUser || resending) return
+    setResending(true)
+    try {
+      await resendVerificationEmail(verifyUser)
+      setResendDone(true)
+      setTimeout(() => setResendDone(false), 4000)
+    } catch {}
+    finally { setResending(false) }
+  }
+
   if (verifyPending) {
     return (
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-        style={{ textAlign: 'center', padding: '8px 0' }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>📩</div>
-        <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: 15, marginBottom: 8 }}>
-          Verifique seu e-mail!
-        </p>
-        <p style={{ color: 'rgba(220,232,255,0.45)', fontSize: 13, marginBottom: 20, lineHeight: 1.5 }}>
-          Enviamos um link de confirmação para{' '}
-          <strong style={{ color: '#dce8ff' }}>{email}</strong>.
-          <br />Clique no link para ativar sua conta.
-        </p>
+        style={{ padding: '8px 0' }}>
+        {/* Ícone */}
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 44, marginBottom: 10 }}>📩</div>
+          <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>
+            Confirme seu e-mail
+          </p>
+          <p style={{ color: 'rgba(220,232,255,0.45)', fontSize: 13, lineHeight: 1.5 }}>
+            Enviamos um link para{' '}
+            <strong style={{ color: '#dce8ff' }}>{email}</strong>
+          </p>
+        </div>
+
+        {/* Aviso de spam em destaque */}
+        <div style={{
+          background: 'rgba(251,191,36,0.08)',
+          border: '1px solid rgba(251,191,36,0.2)',
+          borderRadius: 14, padding: '12px 14px',
+          marginBottom: 16,
+          display: 'flex', gap: 10, alignItems: 'flex-start',
+        }}>
+          <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+          <p style={{ color: 'rgba(251,191,36,0.85)', fontSize: 12, lineHeight: 1.5, margin: 0 }}>
+            <strong>Não encontrou o email?</strong> Verifique a pasta de <strong>spam / lixo eletrônico</strong>. Emails do Firebase costumam cair lá na primeira vez.
+          </p>
+        </div>
+
+        {/* Botão reenviar */}
+        {resendDone ? (
+          <p style={{ color: 'rgba(220,232,255,0.5)', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
+            ✓ Email reenviado!
+          </p>
+        ) : (
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            style={{
+              width: '100%', padding: '11px', borderRadius: 12, marginBottom: 10,
+              background: 'rgba(220,232,255,0.07)',
+              border: '1px solid rgba(220,232,255,0.15)',
+              color: 'rgba(220,232,255,0.6)', fontWeight: 600,
+              fontSize: 13, cursor: resending ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', opacity: resending ? 0.5 : 1,
+            }}>
+            {resending ? 'Reenviando...' : 'Reenviar email'}
+          </button>
+        )}
+
         <button onClick={() => navigate('/onboarding')}
           className="btn-primary"
           style={{
             width: '100%', padding: '13px', borderRadius: 12, fontWeight: 700,
             fontSize: 14, cursor: 'pointer', color: '#07102a',
-            border: 'none', fontFamily: 'inherit', marginBottom: 10,
+            border: 'none', fontFamily: 'inherit',
           }}>
           Continuar para o app
         </button>
-        <p style={{ color: 'rgba(220,232,255,0.3)', fontSize: 11 }}>
-          Não recebeu? Verifique a pasta de spam.
-        </p>
       </motion.div>
     )
   }
