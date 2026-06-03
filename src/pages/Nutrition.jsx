@@ -219,7 +219,10 @@ export default function Nutrition() {
                 </span>
               </div>
               {timeMeals.length > 1 && (
-                <p className="text-muted text-xs mb-2 ml-0.5">Escolha uma opção</p>
+                <p style={{ color: 'rgba(220,232,255,0.5)', fontSize: 11, fontWeight: 600,
+                  marginBottom: 8, letterSpacing: '0.02em' }}>
+                  Escolha 1 opção abaixo
+                </p>
               )}
               <div className="space-y-0">
                 {timeMeals.map((meal, i) => (
@@ -230,10 +233,17 @@ export default function Nutrition() {
                       onToggle={() => toggleMeal(meal.id)}
                     />
                     {i < timeMeals.length - 1 && (
-                      <div className="flex items-center gap-3 my-2 px-2">
-                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
-                        <span style={{ color: 'rgba(220,232,255,0.25)', fontSize: 11, fontWeight: 700 }}>OU</span>
-                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '10px 0' }}>
+                        <span style={{
+                          background: 'rgba(220,232,255,0.07)',
+                          border: '1px solid rgba(220,232,255,0.18)',
+                          color: 'rgba(220,232,255,0.55)',
+                          fontSize: 10, fontWeight: 700,
+                          padding: '4px 14px', borderRadius: 20,
+                          letterSpacing: '0.12em',
+                        }}>
+                          OU
+                        </span>
                       </div>
                     )}
                   </div>
