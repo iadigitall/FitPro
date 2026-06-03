@@ -408,7 +408,9 @@ export default function Onboarding() {
   ]
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col px-6 py-8 max-w-lg mx-auto">
+    <div className="min-h-screen flex flex-col px-5 py-8"
+      style={{ background: 'radial-gradient(ellipse at 50% 20%, #0d2260 0%, #070d1f 55%, #030810 100%)' }}
+    >
       {/* Progress */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
