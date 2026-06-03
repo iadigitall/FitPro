@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createHashRouter, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import Layout from './components/Layout'
 import Auth from './pages/Auth'
@@ -42,7 +42,7 @@ function OnboardingRoute({ children }) {
   return children
 }
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   { path: '/login',      element: <AuthRoute><Auth defaultTab="login" /></AuthRoute> },
   { path: '/register',   element: <AuthRoute><Auth defaultTab="signup" /></AuthRoute> },
   { path: '/onboarding', element: <OnboardingRoute><Onboarding /></OnboardingRoute> },
