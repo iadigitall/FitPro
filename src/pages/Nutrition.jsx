@@ -106,7 +106,7 @@ export default function Nutrition() {
   const mealPlan = useMemo(() => {
     if (!profile || !targets) return null
     return generateDayMealPlan(profile.goal, todayIndex, targets, profile.dietaryRestrictions || [])
-  }, [profile, targets, dayOfWeek])
+  }, [profile, targets, todayIndex])
 
   const consumed = useMemo(() => {
     if (!mealPlan) return { calories: 0, protein: 0, carbs: 0, fats: 0 }
