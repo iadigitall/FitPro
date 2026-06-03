@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Utensils, Clock, ChefHat, Zap, CheckCircle2, Coffee, Moon, Apple, Sun } from 'lucide-react'
+import { Utensils, Clock, ChefHat, Zap, CheckCircle2, Coffee, Moon, Apple } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useUserStore } from '../store/userStore'
 import { calculateTMB, calculateTDEE, calculateTargets, generateDayMealPlan, getPostWorkoutMessage } from '../services/nutrition'
@@ -95,7 +95,6 @@ export default function Nutrition() {
   const today = new Date()
   const todayIndex = today.getDay()
   const todayKey = today.toISOString().split('T')[0]
-  const dayOfWeek = today.getDay()
 
   const targets = useMemo(() => {
     if (!profile) return null
@@ -106,7 +105,7 @@ export default function Nutrition() {
 
   const mealPlan = useMemo(() => {
     if (!profile || !targets) return null
-    return generateDayMealPlan(profile.goal, dayOfWeek, targets, profile.dietaryRestrictions || [])
+    return generateDayMealPlan(profile.goal, todayIndex, targets, profile.dietaryRestrictions || [])
   }, [profile, targets, dayOfWeek])
 
   const consumed = useMemo(() => {
@@ -219,19 +218,25 @@ export default function Nutrition() {
                   {timeMeals.reduce((s, m) => s + m.calories, 0)} kcal
                 </span>
               </div>
-              <div className="space-y-2.5">
-                {timeMeals.map((meal) => (
-                  <motion.div
-                    key={meal.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
+              {timeMeals.length > 1 && (
+                <p className="text-muted text-xs mb-2 ml-0.5">Escolha uma opção</p>
+              )}
+              <div className="space-y-0">
+                {timeMeals.map((meal, i) => (
+                  <div key={meal.id}>
                     <MealCard
                       meal={meal}
                       checked={!!checkedMeals[meal.id]}
                       onToggle={() => toggleMeal(meal.id)}
                     />
-                  </motion.div>
+                    {i < timeMeals.length - 1 && (
+                      <div className="flex items-center gap-3 my-2 px-2">
+                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                        <span style={{ color: 'rgba(220,232,255,0.25)', fontSize: 11, fontWeight: 700 }}>OU</span>
+                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
