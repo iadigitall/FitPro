@@ -10,10 +10,16 @@
   "theme_color": "#070d1f",
   "icons": [
     {
-      "src": "/FitPro/icons.svg",
+      "src": "/FitPro/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/FitPro/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fundo escuro com gradiente -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="28%" r="75%">
+      <stop offset="0%" stop-color="#1a3fa8"/>
+      <stop offset="100%" stop-color="#070d1f"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+
+  <!-- F minimalista — mesmo logo do app, adaptado para fundo escuro -->
+  <path
+    d="M138 400 L138 112 L374 112"
+    stroke="#dce8ff" stroke-width="52"
+    stroke-linecap="round" stroke-linejoin="round" fill="none"
+  />
+  <line
+    x1="138" y1="256" x2="330" y2="256"
+    stroke="#dce8ff" stroke-width="52" stroke-linecap="round"
+  />
+
+  <!-- Ponto azul — marca de identidade -->
+  <circle cx="398" cy="388" r="44" fill="#4a7aff"/>
+</svg>
