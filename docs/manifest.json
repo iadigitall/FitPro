@@ -1,0 +1,19 @@
+{
+  "name": "FitPro",
+  "short_name": "FitPro",
+  "description": "Seu personal trainer digital",
+  "start_url": "/FitPro/",
+  "scope": "/FitPro/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070d1f",
+  "theme_color": "#070d1f",
+  "icons": [
+    {
+      "src": "/FitPro/icons.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -22,8 +22,8 @@ export function BottomNav() {
         zIndex: 40,
         display: 'flex',
         alignItems: 'center',
-        padding: '6px',
-        gap: 2,
+        padding: '8px',
+        gap: 4,
         background: 'rgba(7, 10, 22, 0.82)',
         backdropFilter: 'blur(40px)',
         WebkitBackdropFilter: 'blur(40px)',
@@ -43,8 +43,8 @@ export function BottomNav() {
             <div
               style={{
                 position: 'relative',
-                width: 54,
-                height: 44,
+                width: 62,
+                height: 50,
                 borderRadius: 50,
                 display: 'flex',
                 alignItems: 'center',
@@ -66,7 +66,7 @@ export function BottomNav() {
                 />
               )}
               <Icon
-                size={20}
+                size={22}
                 strokeWidth={isActive ? 2.2 : 1.6}
                 style={{
                   color: isActive ? '#dce8ff' : 'rgba(220,232,255,0.28)',

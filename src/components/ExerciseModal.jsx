@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Clock, RotateCcw, Zap, ChevronRight } from 'lucide-react'
 
@@ -22,6 +23,12 @@ function DifficultyColor(difficulty) {
 }
 
 export function ExerciseModal({ exercise, onClose }) {
+  useEffect(() => {
+    if (!exercise) return
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [exercise])
+
   if (!exercise) return null
 
   return (
