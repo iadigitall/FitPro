@@ -384,23 +384,12 @@ function SignupForm() {
           <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>
             Confirme seu e-mail
           </p>
-          <p style={{ color: 'rgba(220,232,255,0.45)', fontSize: 13, lineHeight: 1.5 }}>
+          <p style={{ color: 'rgba(220,232,255,0.45)', fontSize: 13, lineHeight: 1.6 }}>
             Enviamos um link para{' '}
-            <strong style={{ color: '#dce8ff' }}>{email}</strong>
-          </p>
-        </div>
-
-        {/* Aviso de spam em destaque */}
-        <div style={{
-          background: 'rgba(251,191,36,0.08)',
-          border: '1px solid rgba(251,191,36,0.2)',
-          borderRadius: 14, padding: '12px 14px',
-          marginBottom: 16,
-          display: 'flex', gap: 10, alignItems: 'flex-start',
-        }}>
-          <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
-          <p style={{ color: 'rgba(251,191,36,0.85)', fontSize: 12, lineHeight: 1.5, margin: 0 }}>
-            <strong>Não encontrou o email?</strong> Verifique a pasta de <strong>spam / lixo eletrônico</strong>. Emails do Firebase costumam cair lá na primeira vez.
+            <strong style={{ color: '#dce8ff' }}>{email}</strong>.{' '}
+            <strong style={{ color: 'rgba(251,191,36,0.9)' }}>
+              Normalmente cai na pasta de spam — verifique lá antes de reenviar.
+            </strong>
           </p>
         </div>
 
