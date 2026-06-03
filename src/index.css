@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #dce8ff;
+  --color-primary-dark: #b8d0ff;
+  --color-bg: #070d1f;
+  --color-surface: #0e1628;
+  --color-surface-2: #131d34;
+  --color-surface-3: #1a2540;
+  --color-border: #1e2d4a;
+  --color-text: #f0f0f0;
+  --color-muted: #7a8aaa;
+  --color-danger: #FF4757;
+  --color-warning: #FFA502;
+  --color-card: #0e1628;
+  --color-subtle: #4a5a7a;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html { min-height: 100%; }
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  color: #F0F0F0;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: #030810;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+/* Premium card glass */
+.card-glass {
+  background: rgba(14, 22, 40, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(30, 45, 74, 0.7);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35), 0 1px 4px rgba(20,74,224,0.08);
+}
+
+/* Premium white button */
+.btn-primary {
+  background: rgba(220, 232, 255, 0.95);
+  color: #07102a !important;
+  box-shadow: 0 4px 24px rgba(180, 210, 255, 0.25);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-primary:hover {
+  background: rgba(240, 246, 255, 0.98);
+  box-shadow: 0 6px 28px rgba(180, 210, 255, 0.35);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 12px rgba(180, 210, 255, 0.2);
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0e1628; }
+::-webkit-scrollbar-thumb { background: #1e2d4a; border-radius: 2px; }
+
+::selection { background-color: #144ae040; color: #fff; }
+
+* { -webkit-tap-highlight-color: transparent; }
