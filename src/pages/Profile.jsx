@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, Save, LogOut, Check, Mail, Trash2, Lock, Eye, EyeOff, ChevronRight } from 'lucide-react'
+import { Camera, Save, LogOut, Check, Mail, Trash2, Lock, Eye, EyeOff, ChevronRight, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { updateUserProfile, deleteAllUserData } from '../services/firestore'
 import { logOut, resendVerificationEmail, deleteAccount } from '../services/auth'
@@ -11,6 +11,7 @@ export default function Profile() {
   const fileRef = useRef()
   const [toast, setToast] = useState('')
   const [saving, setSaving] = useState(false)
+  const [openSection, setOpenSection] = useState(null)
 
   const [deleteModal, setDeleteModal] = useState(false)
   const [deletePass, setDeletePass] = useState('')
@@ -33,33 +34,33 @@ export default function Profile() {
     { id: 'nenhuma_d',   label: 'Sem restrições' },
   ]
 
+  const GOALS = [
+    { id: 'hipertrofia',     label: 'Hipertrofia',     desc: 'Ganhar massa muscular' },
+    { id: 'emagrecimento',   label: 'Emagrecimento',   desc: 'Perder gordura corporal' },
+    { id: 'condicionamento', label: 'Condicionamento', desc: 'Melhorar forma física' },
+  ]
+
   const [form, setForm] = useState({
-    name:               profile?.name               || '',
-    weight:             profile?.weight             || '',
-    height:             profile?.height             || '',
-    age:                profile?.age                || '',
-    sex:                profile?.sex                || 'masculino',
-    goal:               profile?.goal               || 'hipertrofia',
-    experienceLevel:    profile?.experienceLevel    || '',
-    frequency:          profile?.frequency          || 4,
-    workoutTime:        profile?.workoutTime        || 'manhã',
+    name:                profile?.name                || '',
+    weight:              profile?.weight              || '',
+    height:              profile?.height              || '',
+    age:                 profile?.age                 || '',
+    sex:                 profile?.sex                 || 'masculino',
+    goal:                profile?.goal                || 'hipertrofia',
+    experienceLevel:     profile?.experienceLevel     || '',
+    frequency:           profile?.frequency           || 4,
+    workoutTime:         profile?.workoutTime         || 'manhã',
     dietaryRestrictions: profile?.dietaryRestrictions || [],
-    photoURL:           profile?.photoURL           || null,
+    photoURL:            profile?.photoURL            || null,
   })
 
+  const toggleSection = (id) => setOpenSection(prev => prev === id ? null : id)
+
   const toggleDietary = (id) => {
-    if (id === 'nenhuma_d') {
-      setForm(f => ({ ...f, dietaryRestrictions: ['nenhuma_d'] }))
-      return
-    }
+    if (id === 'nenhuma_d') { setForm(f => ({ ...f, dietaryRestrictions: ['nenhuma_d'] })); return }
     setForm(f => {
       const current = (f.dietaryRestrictions || []).filter(r => r !== 'nenhuma_d')
-      return {
-        ...f,
-        dietaryRestrictions: current.includes(id)
-          ? current.filter(r => r !== id)
-          : [...current, id],
-      }
+      return { ...f, dietaryRestrictions: current.includes(id) ? current.filter(r => r !== id) : [...current, id] }
     })
   }
 
@@ -72,13 +73,10 @@ export default function Profile() {
       img.onload = () => {
         const canvas = document.createElement('canvas')
         const SIZE = 240
-        canvas.width = SIZE
-        canvas.height = SIZE
+        canvas.width = SIZE; canvas.height = SIZE
         const ctx = canvas.getContext('2d')
         const min = Math.min(img.width, img.height)
-        const sx = (img.width - min) / 2
-        const sy = (img.height - min) / 2
-        ctx.drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE)
+        ctx.drawImage(img, (img.width - min) / 2, (img.height - min) / 2, min, min, 0, 0, SIZE, SIZE)
         setForm(f => ({ ...f, photoURL: canvas.toDataURL('image/jpeg', 0.82) }))
       }
       img.src = ev.target.result
@@ -90,62 +88,87 @@ export default function Profile() {
     if (!user) return
     setSaving(true)
     try {
-      const data = {
-        ...form,
-        weight: Number(form.weight),
-        height: Number(form.height),
-        age:    Number(form.age),
-        frequency: Number(form.frequency),
-      }
+      const data = { ...form, weight: Number(form.weight), height: Number(form.height), age: Number(form.age), frequency: Number(form.frequency) }
       await updateUserProfile(user.uid, data)
       setProfile({ ...profile, ...data })
+      setOpenSection(null)
       setToast('Perfil atualizado!')
-    } catch {
-      setToast('Erro ao salvar. Tente novamente.')
-    } finally {
-      setSaving(false)
-    }
+    } catch { setToast('Erro ao salvar. Tente novamente.') }
+    finally { setSaving(false) }
   }
 
   const handleResendEmail = async () => {
     if (!user || resendingEmail) return
     setResendingEmail(true)
-    try {
-      await resendVerificationEmail(user)
-      setToast('E-mail de verificação reenviado!')
-    } catch {
-      setToast('Erro ao reenviar. Tente novamente.')
-    } finally {
-      setResendingEmail(false)
-    }
+    try { await resendVerificationEmail(user); setToast('E-mail de verificação reenviado!') }
+    catch { setToast('Erro ao reenviar. Tente novamente.') }
+    finally { setResendingEmail(false) }
   }
 
   const handleDeleteAccount = async () => {
     if (!user || !deletePass) return
-    setDeleting(true)
-    setDeleteError('')
-    try {
-      await deleteAllUserData(user.uid)
-      await deleteAccount(user, deletePass)
-    } catch (err) {
-      const msgs = {
-        'auth/wrong-password':       'Senha incorreta.',
-        'auth/invalid-credential':   'Senha incorreta.',
-        'auth/too-many-requests':    'Muitas tentativas. Aguarde.',
-      }
+    setDeleting(true); setDeleteError('')
+    try { await deleteAllUserData(user.uid); await deleteAccount(user, deletePass) }
+    catch (err) {
+      const msgs = { 'auth/wrong-password': 'Senha incorreta.', 'auth/invalid-credential': 'Senha incorreta.', 'auth/too-many-requests': 'Muitas tentativas. Aguarde.' }
       setDeleteError(msgs[err.code] || 'Erro ao deletar. Tente novamente.')
-    } finally {
-      setDeleting(false)
-    }
+    } finally { setDeleting(false) }
   }
 
-  const goals = [
-    { id: 'hipertrofia',     label: 'Hipertrofia',     desc: 'Ganhar massa muscular' },
-    { id: 'emagrecimento',   label: 'Emagrecimento',   desc: 'Perder gordura corporal' },
-    { id: 'condicionamento', label: 'Condicionamento', desc: 'Melhorar forma física' },
-  ]
+  // Summaries para exibir no accordion fechado
+  const dietarySummary = () => {
+    const d = form.dietaryRestrictions || []
+    if (!d.length) return '—'
+    if (d.includes('nenhuma_d')) return 'Sem restrições'
+    return d.map(id => DIETARY_OPTIONS.find(o => o.id === id)?.label).filter(Boolean).join(', ')
+  }
 
   const firstName = form.name?.split(' ')[0] || '?'
+  const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, color: '#f0f0f0', fontSize: 14, padding: '12px 14px', width: '100%', outline: 'none', fontFamily: 'inherit' }
+
+  // Componente inline de accordion
+  const AccordionRow = ({ id, title, summary, children, last }) => {
+    const isOpen = openSection === id
+    return (
+      <div>
+        <button
+          onClick={() => toggleSection(id)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '17px 20px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', gap: 12 }}
+        >
+          <span style={{ flex: 1, color: '#f0f0f0', fontSize: 14, fontWeight: 600, textAlign: 'left' }}>
+            {title}
+          </span>
+          {!isOpen && summary && (
+            <span style={{ color: 'rgba(220,232,255,0.3)', fontSize: 12, maxWidth: 120, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {summary}
+            </span>
+          )}
+          <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown size={15} style={{ color: 'rgba(220,232,255,0.25)', flexShrink: 0 }} />
+          </motion.div>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.div
+              key="content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.28, ease: [0.04, 0.62, 0.23, 0.98] }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div style={{ padding: '0 20px 20px' }}>
+                {children}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {!last && <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-full pb-6">
@@ -158,29 +181,17 @@ export default function Profile() {
       </div>
 
       {/* Avatar */}
-      <div className="flex flex-col items-center py-8">
+      <div className="flex flex-col items-center py-7">
         <div className="relative">
-          <div
-            className="w-24 h-24 rounded-3xl overflow-hidden flex items-center justify-center"
-            style={{
-              background: form.photoURL ? 'transparent' : 'linear-gradient(135deg, #1a52f5 0%, #0a2fa8 100%)',
-              boxShadow: '0 8px 32px rgba(20,74,224,0.4), inset 0 1px 0 rgba(255,255,255,0.12)',
-            }}
-          >
-            {form.photoURL ? (
-              <img src={form.photoURL} alt="avatar" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-white text-3xl font-bold">{firstName[0]?.toUpperCase()}</span>
-            )}
+          <div className="w-24 h-24 rounded-3xl overflow-hidden flex items-center justify-center"
+            style={{ background: form.photoURL ? 'transparent' : 'linear-gradient(135deg, #1a52f5 0%, #0a2fa8 100%)', boxShadow: '0 8px 32px rgba(20,74,224,0.4)' }}>
+            {form.photoURL
+              ? <img src={form.photoURL} alt="avatar" className="w-full h-full object-cover" />
+              : <span className="text-white text-3xl font-bold">{firstName[0]?.toUpperCase()}</span>}
           </div>
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="absolute -bottom-2 -right-2 w-9 h-9 rounded-xl flex items-center justify-center transition-opacity hover:opacity-80"
-            style={{
-              background: 'rgba(220,232,255,0.95)',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
-            }}
-          >
+          <button onClick={() => fileRef.current?.click()}
+            className="absolute -bottom-2 -right-2 w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(220,232,255,0.95)', boxShadow: '0 2px 10px rgba(0,0,0,0.35)' }}>
             <Camera size={16} style={{ color: '#07102a' }} />
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
@@ -188,328 +199,176 @@ export default function Profile() {
         <p className="text-muted text-xs mt-4">Toque na câmera para alterar a foto</p>
       </div>
 
-      <div className="px-4 space-y-4">
-        {/* Dados pessoais */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card-glass rounded-2xl p-5"
-        >
-          <p className="text-muted text-[10px] font-bold uppercase tracking-widest mb-4">Dados Pessoais</p>
+      <div className="px-4 space-y-3">
+        {/* Accordion principal */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-glass rounded-2xl overflow-hidden">
 
-          <div className="mb-4">
-            <label className="text-muted text-xs block mb-1.5">Nome completo</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-xl px-4 py-3 text-text text-sm focus:outline-none"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            {[
-              { key: 'weight', label: 'Peso', unit: 'kg' },
-              { key: 'height', label: 'Altura', unit: 'cm' },
-            ].map(({ key, label, unit }) => (
-              <div key={key}>
-                <label className="text-muted text-xs block mb-1.5">{label}</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={form[key]}
-                    onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                    className="w-full rounded-xl pl-4 pr-8 py-3 text-text text-sm focus:outline-none"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">{unit}</span>
+          <AccordionRow id="dados" title="Dados Pessoais" summary={form.name || '—'}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ color: 'rgba(220,232,255,0.4)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6 }}>Nome completo</label>
+                <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Seu nome" style={inputStyle} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {[{ key: 'weight', label: 'Peso', unit: 'kg' }, { key: 'height', label: 'Altura', unit: 'cm' }].map(({ key, label, unit }) => (
+                  <div key={key}>
+                    <label style={{ color: 'rgba(220,232,255,0.4)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6 }}>{label}</label>
+                    <div style={{ position: 'relative' }}>
+                      <input type="number" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={{ ...inputStyle, paddingRight: 36 }} />
+                      <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(220,232,255,0.3)', fontSize: 12 }}>{unit}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ color: 'rgba(220,232,255,0.4)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6 }}>Idade</label>
+                  <div style={{ position: 'relative' }}>
+                    <input type="number" value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} style={{ ...inputStyle, paddingRight: 44 }} />
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(220,232,255,0.3)', fontSize: 12 }}>anos</span>
+                  </div>
+                </div>
+                <div>
+                  <label style={{ color: 'rgba(220,232,255,0.4)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6 }}>Sexo</label>
+                  <select value={form.sex} onChange={e => setForm(f => ({ ...f, sex: e.target.value }))} style={{ ...inputStyle, appearance: 'none' }}>
+                    <option value="masculino">Masculino</option>
+                    <option value="feminino">Feminino</option>
+                  </select>
                 </div>
               </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-muted text-xs block mb-1.5">Idade</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  value={form.age}
-                  onChange={e => setForm(f => ({ ...f, age: e.target.value }))}
-                  className="w-full rounded-xl pl-4 pr-12 py-3 text-text text-sm focus:outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">anos</span>
-              </div>
             </div>
-            <div>
-              <label className="text-muted text-xs block mb-1.5">Sexo</label>
-              <select
-                value={form.sex}
-                onChange={e => setForm(f => ({ ...f, sex: e.target.value }))}
-                className="w-full rounded-xl px-4 py-3 text-text text-sm focus:outline-none"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
-              >
-                <option value="masculino">Masculino</option>
-                <option value="feminino">Feminino</option>
-              </select>
-            </div>
-          </div>
-        </motion.div>
+          </AccordionRow>
 
-        {/* Objetivo */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="card-glass rounded-2xl p-5"
-        >
-          <p className="text-muted text-[10px] font-bold uppercase tracking-widest mb-4">Objetivo</p>
-          <div className="space-y-2">
-            {goals.map(g => (
-              <button
-                key={g.id}
-                onClick={() => setForm(f => ({ ...f, goal: g.id }))}
-                className="w-full flex items-center justify-between p-3.5 rounded-xl transition-all text-left"
-                style={{
-                  background: form.goal === g.id ? 'rgba(220,232,255,0.07)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${form.goal === g.id ? 'rgba(220,232,255,0.18)' : 'rgba(255,255,255,0.06)'}`,
-                }}
-              >
-                <div>
-                  <p className="text-text text-sm font-semibold">{g.label}</p>
-                  <p className="text-muted text-xs mt-0.5">{g.desc}</p>
-                </div>
-                {form.goal === g.id && (
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: 'rgba(220,232,255,0.9)' }}>
-                    <Check size={12} style={{ color: '#07102a' }} strokeWidth={3} />
+          <AccordionRow id="objetivo" title="Objetivo" summary={GOALS.find(g => g.id === form.goal)?.label}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {GOALS.map(g => (
+                <button key={g.id} onClick={() => setForm(f => ({ ...f, goal: g.id }))}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', background: form.goal === g.id ? 'rgba(220,232,255,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${form.goal === g.id ? 'rgba(220,232,255,0.18)' : 'rgba(255,255,255,0.06)'}` }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ color: '#f0f0f0', fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{g.label}</p>
+                    <p style={{ color: 'rgba(220,232,255,0.35)', fontSize: 12 }}>{g.desc}</p>
                   </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Nível de experiência */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.06 }}
-          className="card-glass rounded-2xl p-5"
-        >
-          <p className="text-muted text-[10px] font-bold uppercase tracking-widest mb-4">Nível de Experiência</p>
-          <div className="space-y-2">
-            {EXPERIENCE_LEVELS.map(lvl => (
-              <button
-                key={lvl.id}
-                onClick={() => setForm(f => ({ ...f, experienceLevel: lvl.id }))}
-                className="w-full flex items-center justify-between p-3.5 rounded-xl transition-all text-left"
-                style={{
-                  background: form.experienceLevel === lvl.id ? 'rgba(220,232,255,0.07)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${form.experienceLevel === lvl.id ? 'rgba(220,232,255,0.18)' : 'rgba(255,255,255,0.06)'}`,
-                }}
-              >
-                <div>
-                  <p className="text-text text-sm font-semibold">{lvl.label}</p>
-                  <p className="text-muted text-xs mt-0.5">{lvl.desc}</p>
-                </div>
-                {form.experienceLevel === lvl.id && (
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: 'rgba(220,232,255,0.9)' }}>
-                    <Check size={12} style={{ color: '#07102a' }} strokeWidth={3} />
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Restrições alimentares */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.07 }}
-          className="card-glass rounded-2xl p-5"
-        >
-          <p className="text-muted text-[10px] font-bold uppercase tracking-widest mb-4">Preferências Alimentares</p>
-          <div className="space-y-2">
-            {DIETARY_OPTIONS.map(opt => {
-              const selected = (form.dietaryRestrictions || []).includes(opt.id)
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => toggleDietary(opt.id)}
-                  className="w-full flex items-center gap-3 p-3.5 rounded-xl transition-all text-left"
-                  style={{
-                    background: selected ? 'rgba(220,232,255,0.07)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${selected ? 'rgba(220,232,255,0.18)' : 'rgba(255,255,255,0.06)'}`,
-                  }}
-                >
-                  <div className="w-5 h-5 rounded flex items-center justify-center shrink-0"
-                    style={{
-                      border: `2px solid ${selected ? 'rgba(220,232,255,0.9)' : 'rgba(255,255,255,0.2)'}`,
-                      background: selected ? 'rgba(220,232,255,0.9)' : 'transparent',
-                    }}>
-                    {selected && <Check size={11} style={{ color: '#07102a' }} strokeWidth={3} />}
-                  </div>
-                  <p className="text-text text-sm font-medium">{opt.label}</p>
+                  {form.goal === g.id && (
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(220,232,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Check size={11} style={{ color: '#07102a' }} strokeWidth={3} />
+                    </div>
+                  )}
                 </button>
-              )
-            })}
-          </div>
-        </motion.div>
+              ))}
+            </div>
+          </AccordionRow>
 
-        {/* Frequência */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08 }}
-          className="card-glass rounded-2xl p-5"
-        >
-          <p className="text-muted text-[10px] font-bold uppercase tracking-widest mb-4">Frequência Semanal</p>
-          <div className="flex gap-3">
-            {[3, 4, 5].map(f => (
-              <button
-                key={f}
-                onClick={() => setForm(frm => ({ ...frm, frequency: f }))}
-                className="flex-1 py-3 rounded-xl text-sm font-bold transition-all"
-                style={{
-                  background: form.frequency === f ? 'rgba(220,232,255,0.95)' : 'rgba(255,255,255,0.04)',
-                  color: form.frequency === f ? '#07102a' : 'rgba(220,232,255,0.45)',
-                  border: `1px solid ${form.frequency === f ? 'rgba(220,232,255,0.7)' : 'rgba(255,255,255,0.07)'}`,
-                }}
-              >
-                {f}x / sem
-              </button>
-            ))}
-          </div>
-        </motion.div>
+          <AccordionRow id="nivel" title="Nível de Experiência" summary={EXPERIENCE_LEVELS.find(l => l.id === form.experienceLevel)?.label || 'Não definido'}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {EXPERIENCE_LEVELS.map(lvl => (
+                <button key={lvl.id} onClick={() => setForm(f => ({ ...f, experienceLevel: lvl.id }))}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', background: form.experienceLevel === lvl.id ? 'rgba(220,232,255,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${form.experienceLevel === lvl.id ? 'rgba(220,232,255,0.18)' : 'rgba(255,255,255,0.06)'}` }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ color: '#f0f0f0', fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{lvl.label}</p>
+                    <p style={{ color: 'rgba(220,232,255,0.35)', fontSize: 12 }}>{lvl.desc}</p>
+                  </div>
+                  {form.experienceLevel === lvl.id && (
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(220,232,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Check size={11} style={{ color: '#07102a' }} strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </AccordionRow>
 
-        {/* Horário */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="card-glass rounded-2xl p-5"
-        >
-          <p className="text-muted text-[10px] font-bold uppercase tracking-widest mb-4">Horário Preferido</p>
-          <div className="flex gap-3">
-            {['manhã', 'tarde', 'noite'].map(t => (
-              <button
-                key={t}
-                onClick={() => setForm(f => ({ ...f, workoutTime: t }))}
-                className="flex-1 py-3 rounded-xl text-xs font-bold transition-all capitalize"
-                style={{
-                  background: form.workoutTime === t ? 'rgba(220,232,255,0.95)' : 'rgba(255,255,255,0.04)',
-                  color: form.workoutTime === t ? '#07102a' : 'rgba(220,232,255,0.45)',
-                  border: `1px solid ${form.workoutTime === t ? 'rgba(220,232,255,0.7)' : 'rgba(255,255,255,0.07)'}`,
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          <AccordionRow id="dieta" title="Preferências Alimentares" summary={dietarySummary()}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {DIETARY_OPTIONS.map(opt => {
+                const sel = (form.dietaryRestrictions || []).includes(opt.id)
+                return (
+                  <button key={opt.id} onClick={() => toggleDietary(opt.id)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', background: sel ? 'rgba(220,232,255,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${sel ? 'rgba(220,232,255,0.18)' : 'rgba(255,255,255,0.06)'}` }}>
+                    <div style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, border: `2px solid ${sel ? 'rgba(220,232,255,0.9)' : 'rgba(255,255,255,0.2)'}`, background: sel ? 'rgba(220,232,255,0.9)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {sel && <Check size={10} style={{ color: '#07102a' }} strokeWidth={3} />}
+                    </div>
+                    <span style={{ color: '#f0f0f0', fontSize: 14, fontWeight: 500 }}>{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </AccordionRow>
+
+          <AccordionRow id="freq" title="Frequência" summary={`${form.frequency}x / semana`}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {[3, 4, 5].map(f => (
+                <button key={f} onClick={() => setForm(frm => ({ ...frm, frequency: f }))}
+                  style={{ flex: 1, padding: '12px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: form.frequency === f ? 'rgba(220,232,255,0.95)' : 'rgba(255,255,255,0.04)', color: form.frequency === f ? '#07102a' : 'rgba(220,232,255,0.45)', border: `1px solid ${form.frequency === f ? 'rgba(220,232,255,0.7)' : 'rgba(255,255,255,0.07)'}` }}>
+                  {f}x / sem
+                </button>
+              ))}
+            </div>
+          </AccordionRow>
+
+          <AccordionRow id="horario" title="Horário preferido" summary={form.workoutTime} last>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {['manhã', 'tarde', 'noite'].map(t => (
+                <button key={t} onClick={() => setForm(f => ({ ...f, workoutTime: t }))}
+                  style={{ flex: 1, padding: '12px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize', background: form.workoutTime === t ? 'rgba(220,232,255,0.95)' : 'rgba(255,255,255,0.04)', color: form.workoutTime === t ? '#07102a' : 'rgba(220,232,255,0.45)', border: `1px solid ${form.workoutTime === t ? 'rgba(220,232,255,0.7)' : 'rgba(255,255,255,0.07)'}` }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </AccordionRow>
+
         </motion.div>
 
         {/* Salvar */}
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full btn-primary font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          {saving ? (
-            <span className="w-5 h-5 border-2 rounded-full animate-spin"
-              style={{ borderColor: 'rgba(7,16,42,0.25)', borderTopColor: '#07102a' }} />
-          ) : (
-            <>
-              <Save size={18} style={{ color: '#07102a' }} />
-              <span style={{ color: '#07102a' }}>Salvar alterações</span>
-            </>
-          )}
+        <button onClick={handleSave} disabled={saving}
+          className="w-full btn-primary font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50">
+          {saving
+            ? <span className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(7,16,42,0.25)', borderTopColor: '#07102a' }} />
+            : <><Save size={18} style={{ color: '#07102a' }} /><span style={{ color: '#07102a' }}>Salvar alterações</span></>}
         </button>
 
-        {/* Card de conta — Sair + Email + Excluir */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.12 }}
-          className="card-glass rounded-2xl overflow-hidden"
-        >
-          {/* Sair da conta */}
-          <button
-            onClick={() => logOut()}
-            className="w-full flex items-center gap-3 px-5 py-4 transition-all text-left"
+        {/* Card de conta */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-glass rounded-2xl overflow-hidden">
+          <button onClick={() => logOut()} className="w-full flex items-center gap-3 px-5 py-4 text-left"
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'none'}
-          >
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(220,232,255,0.07)' }}>
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(220,232,255,0.07)' }}>
               <LogOut size={15} style={{ color: 'rgba(220,232,255,0.5)' }} />
             </div>
-            <span style={{ flex: 1, color: 'rgba(220,232,255,0.7)', fontSize: 14, fontWeight: 500 }}>
-              Sair da conta
-            </span>
+            <span style={{ flex: 1, color: 'rgba(220,232,255,0.7)', fontSize: 14, fontWeight: 500 }}>Sair da conta</span>
             <ChevronRight size={14} style={{ color: 'rgba(220,232,255,0.2)' }} />
           </button>
 
-          {/* Verificação de email — só aparece se não verificado */}
           {user && !user.emailVerified && (
             <>
               <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 20px' }} />
               <div className="flex items-center gap-3 px-5 py-4">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(251,191,36,0.08)' }}>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(251,191,36,0.08)' }}>
                   <Mail size={15} style={{ color: 'rgba(251,191,36,0.7)' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ color: 'rgba(220,232,255,0.65)', fontSize: 14, fontWeight: 500, marginBottom: 1 }}>
-                    E-mail não confirmado
-                  </p>
-                  <p style={{ color: 'rgba(220,232,255,0.25)', fontSize: 11 }}>
-                    {user.email}
-                  </p>
+                  <p style={{ color: 'rgba(220,232,255,0.65)', fontSize: 14, fontWeight: 500, marginBottom: 1 }}>E-mail não confirmado</p>
+                  <p style={{ color: 'rgba(220,232,255,0.25)', fontSize: 11 }}>{user.email}</p>
                 </div>
-                <button
-                  onClick={handleResendEmail}
-                  disabled={resendingEmail}
-                  style={{
-                    padding: '5px 11px', borderRadius: 8, flexShrink: 0,
-                    background: 'rgba(251,191,36,0.08)',
-                    border: '1px solid rgba(251,191,36,0.15)',
-                    color: 'rgba(251,191,36,0.7)',
-                    fontSize: 11, fontWeight: 600, letterSpacing: '0.01em',
-                    cursor: resendingEmail ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit', opacity: resendingEmail ? 0.5 : 1,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+                <button onClick={handleResendEmail} disabled={resendingEmail}
+                  style={{ padding: '5px 11px', borderRadius: 8, flexShrink: 0, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)', color: 'rgba(251,191,36,0.7)', fontSize: 11, fontWeight: 600, cursor: resendingEmail ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: resendingEmail ? 0.5 : 1, whiteSpace: 'nowrap' }}>
                   {resendingEmail ? '...' : 'Reenviar'}
                 </button>
               </div>
             </>
           )}
 
-          {/* Divisor */}
           <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 20px' }} />
 
-          {/* Excluir conta */}
-          <button
-            onClick={() => { setDeleteModal(true); setDeleteError(''); setDeletePass('') }}
-            className="w-full flex items-center gap-3 px-5 py-4 transition-all text-left"
+          <button onClick={() => { setDeleteModal(true); setDeleteError(''); setDeletePass('') }}
+            className="w-full flex items-center gap-3 px-5 py-4 text-left"
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,71,87,0.04)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'none'}
-          >
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(255,71,87,0.07)' }}>
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,71,87,0.07)' }}>
               <Trash2 size={15} style={{ color: 'rgba(255,71,87,0.6)' }} />
             </div>
-            <span style={{ flex: 1, color: 'rgba(255,71,87,0.65)', fontSize: 14, fontWeight: 500 }}>
-              Excluir conta
-            </span>
+            <span style={{ flex: 1, color: 'rgba(255,71,87,0.65)', fontSize: 14, fontWeight: 500 }}>Excluir conta</span>
             <ChevronRight size={14} style={{ color: 'rgba(255,71,87,0.2)' }} />
           </button>
         </motion.div>
@@ -518,158 +377,48 @@ export default function Profile() {
       {/* Modal deletar conta */}
       <AnimatePresence>
         {deleteModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 100,
-              background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
-              display: 'flex', alignItems: 'flex-end', padding: '0 0 env(safe-area-inset-bottom)',
-            }}
-            onClick={(e) => { if (e.target === e.currentTarget) setDeleteModal(false) }}
-          >
-            <motion.div
-              initial={{ y: 60, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 60, opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end' }}
+            onClick={(e) => { if (e.target === e.currentTarget) setDeleteModal(false) }}>
+            <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-              style={{
-                width: '100%',
-                background: 'linear-gradient(180deg, #0d1425 0%, #080f1e 100%)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderBottom: 'none',
-                borderRadius: '28px 28px 0 0',
-                padding: '28px 20px 36px',
-              }}
-            >
-              {/* Handle */}
-              <div style={{
-                width: 36, height: 4, borderRadius: 2,
-                background: 'rgba(255,255,255,0.12)',
-                margin: '0 auto 24px',
-              }} />
-
-              {/* Ícone + título */}
+              style={{ width: '100%', background: 'linear-gradient(180deg, #0d1425 0%, #080f1e 100%)', border: '1px solid rgba(255,255,255,0.07)', borderBottom: 'none', borderRadius: '28px 28px 0 0', padding: '28px 20px 36px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)', margin: '0 auto 24px' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-                <div style={{
-                  width: 48, height: 48, borderRadius: 16, flexShrink: 0,
-                  background: 'rgba(255,71,87,0.1)',
-                  border: '1px solid rgba(255,71,87,0.18)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
+                <div style={{ width: 48, height: 48, borderRadius: 16, flexShrink: 0, background: 'rgba(255,71,87,0.1)', border: '1px solid rgba(255,71,87,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Trash2 size={20} style={{ color: '#FF4757' }} />
                 </div>
                 <div>
-                  <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: 16, marginBottom: 3 }}>
-                    Excluir conta
-                  </p>
-                  <p style={{ color: 'rgba(220,232,255,0.35)', fontSize: 12, lineHeight: 1.4 }}>
-                    Ação irreversível. Todos os dados serão apagados.
-                  </p>
+                  <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: 16, marginBottom: 3 }}>Excluir conta</p>
+                  <p style={{ color: 'rgba(220,232,255,0.35)', fontSize: 12, lineHeight: 1.4 }}>Ação irreversível. Todos os dados serão apagados.</p>
                 </div>
               </div>
-
-              {/* Campo de senha */}
               <div style={{ marginBottom: 14 }}>
-                <label style={{
-                  color: 'rgba(220,232,255,0.4)', fontSize: 11, fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '0.07em',
-                  display: 'block', marginBottom: 8,
-                }}>
-                  Confirme com sua senha
-                </label>
+                <label style={{ color: 'rgba(220,232,255,0.4)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 8 }}>Confirme com sua senha</label>
                 <div style={{ position: 'relative' }}>
-                  <Lock size={13} style={{
-                    position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                    color: 'rgba(220,232,255,0.25)', pointerEvents: 'none',
-                  }} />
-                  <input
-                    type={showDeletePass ? 'text' : 'password'}
-                    value={deletePass}
-                    onChange={e => setDeletePass(e.target.value)}
-                    placeholder="••••••••"
-                    style={{
-                      width: '100%', paddingLeft: 38, paddingRight: 44,
-                      paddingTop: 13, paddingBottom: 13,
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.09)',
-                      borderRadius: 14, color: '#f0f0f0', fontSize: 15,
-                      outline: 'none', fontFamily: 'inherit', letterSpacing: '0.05em',
-                    }}
+                  <Lock size={13} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(220,232,255,0.25)', pointerEvents: 'none' }} />
+                  <input type={showDeletePass ? 'text' : 'password'} value={deletePass} onChange={e => setDeletePass(e.target.value)} placeholder="••••••••"
+                    style={{ width: '100%', paddingLeft: 38, paddingRight: 44, paddingTop: 13, paddingBottom: 13, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, color: '#f0f0f0', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
                     onFocus={e => e.target.style.borderColor = 'rgba(255,71,87,0.35)'}
-                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.09)'}
-                  />
+                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.09)'} />
                   <button type="button" onClick={() => setShowDeletePass(v => !v)}
-                    style={{
-                      position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'rgba(220,232,255,0.3)', display: 'flex',
-                    }}>
+                    style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(220,232,255,0.3)', display: 'flex' }}>
                     {showDeletePass ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
-
               {deleteError && (
-                <motion.p
-                  initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                  style={{
-                    color: '#FF4757', fontSize: 12, marginBottom: 12,
-                    padding: '9px 13px',
-                    background: 'rgba(255,71,87,0.07)',
-                    borderRadius: 10, border: '1px solid rgba(255,71,87,0.15)',
-                  }}
-                >
+                <p style={{ color: '#FF4757', fontSize: 12, marginBottom: 12, padding: '9px 13px', background: 'rgba(255,71,87,0.07)', borderRadius: 10, border: '1px solid rgba(255,71,87,0.15)' }}>
                   {deleteError}
-                </motion.p>
+                </p>
               )}
-
-              {/* Botões */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleting || !deletePass}
-                  style={{
-                    width: '100%', padding: '15px',
-                    borderRadius: 16,
-                    background: deleting || !deletePass
-                      ? 'rgba(255,71,87,0.08)'
-                      : 'rgba(255,71,87,0.88)',
-                    color: deleting || !deletePass ? 'rgba(255,71,87,0.35)' : '#fff',
-                    border: `1px solid ${deleting || !deletePass ? 'rgba(255,71,87,0.12)' : 'rgba(255,71,87,0.5)'}`,
-                    fontWeight: 700, fontSize: 14,
-                    cursor: deleting || !deletePass ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {deleting ? (
-                    <>
-                      <span style={{
-                        width: 15, height: 15, border: '2px solid rgba(255,255,255,0.2)',
-                        borderTopColor: '#fff', borderRadius: '50%',
-                        animation: 'spin 0.7s linear infinite', display: 'inline-block',
-                      }} />
-                      Excluindo...
-                    </>
-                  ) : (
-                    'Confirmar exclusão'
-                  )}
+                <button onClick={handleDeleteAccount} disabled={deleting || !deletePass}
+                  style={{ width: '100%', padding: '15px', borderRadius: 16, background: deleting || !deletePass ? 'rgba(255,71,87,0.08)' : 'rgba(255,71,87,0.88)', color: deleting || !deletePass ? 'rgba(255,71,87,0.35)' : '#fff', border: `1px solid ${deleting || !deletePass ? 'rgba(255,71,87,0.12)' : 'rgba(255,71,87,0.5)'}`, fontWeight: 700, fontSize: 14, cursor: deleting || !deletePass ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {deleting ? <><span style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />Excluindo...</> : 'Confirmar exclusão'}
                 </button>
-
-                <button
-                  onClick={() => setDeleteModal(false)}
-                  style={{
-                    width: '100%', padding: '14px',
-                    borderRadius: 16, background: 'none',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: 'rgba(220,232,255,0.35)',
-                    fontWeight: 600, fontSize: 14,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
+                <button onClick={() => setDeleteModal(false)}
+                  style={{ width: '100%', padding: '14px', borderRadius: 16, background: 'none', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(220,232,255,0.35)', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Cancelar
                 </button>
               </div>
